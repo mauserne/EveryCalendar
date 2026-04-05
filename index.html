@@ -84,8 +84,13 @@
             padding-bottom: 10px;
         }
 
-        .sun { color: #ff4d4d; }
-        .sat { color: #4a90e2; }
+        .sun {
+            color: #ff4d4d;
+        }
+
+        .sat {
+            color: #4a90e2;
+        }
 
         .day {
             aspect-ratio: 1 / 1.1;
@@ -116,9 +121,13 @@
             color: #888;
         }
 
-        .active .count { color: #e0e0e0; }
+        .active .count {
+            color: #e0e0e0;
+        }
 
-        .login-section { margin-bottom: 20px; }
+        .login-section {
+            margin-bottom: 20px;
+        }
 
         #userName {
             flex: 1;
@@ -127,7 +136,8 @@
             border-radius: 4px;
         }
 
-        .btn-load, .btn-save {
+        .btn-load,
+        .btn-save {
             padding: 8px 15px;
             color: white;
             border: none;
@@ -136,7 +146,9 @@
             font-weight: bold;
         }
 
-        .btn-load { background-color: #6c757d; }
+        .btn-load {
+            background-color: #6c757d;
+        }
 
         .btn-save {
             margin-top: 20px;
@@ -161,201 +173,209 @@
 
 <body>
 
-<div class="wrapper">
-    <div class="container">
-        <div class="login-section">
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="userName" placeholder="이름을 입력하세요 (예: 홍길동)">
-                <button class="btn-load" onclick="loadUserData()">로그인/조회</button>
+    <div class="wrapper">
+        <div class="container">
+            <div class="login-section">
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="userName" placeholder="이름을 입력하세요 (예: 홍길동)">
+                    <button class="btn-load" onclick="loadUserData()">로그인/조회</button>
+                </div>
+                <div id="statusMsg" class="status-msg"></div>
             </div>
-            <div id="statusMsg" class="status-msg"></div>
+
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">&lt;</button>
+                <h3 id="monthDisplay"></h3>
+                <button onclick="changeMonth(1)">&gt;</button>
+            </div>
+
+            <div id="calendar" class="calendar-grid"></div>
+            <button class="btn-save" onclick="saveData()">저장하기</button>
         </div>
 
-        <div class="calendar-header">
-            <button onclick="changeMonth(-1)">&lt;</button>
-            <h3 id="monthDisplay"></h3>
-            <button onclick="changeMonth(1)">&gt;</button>
+        <div class="side-container">
+            <h3>선택 인원 확인</h3>
+            <div id="hoverDateDisplay" class="hover-date">날짜에 마우스를 올려보세요</div>
+            <ul id="userList" class="user-list">
+                <li style="color: #aaa; text-align: center; padding-top: 20px;">목록이 이곳에 표시됩니다.</li>
+            </ul>
         </div>
-
-        <div id="calendar" class="calendar-grid"></div>
-        <button class="btn-save" onclick="saveData()">저장하기</button>
     </div>
 
-    <div class="side-container">
-        <h3>선택 인원 확인</h3>
-        <div id="hoverDateDisplay" class="hover-date">날짜에 마우스를 올려보세요</div>
-        <ul id="userList" class="user-list">
-            <li style="color: #aaa; text-align: center; padding-top: 20px;">목록이 이곳에 표시됩니다.</li>
-        </ul>
-    </div>
-</div>
+    <script>
+        // ── 상태 변수 ──────────────────────────────────────────────
+        let usersByDate = {};        // { "2026-4-10": ["홍길동", ...] }
+        let mySelectedDates = new Set(); // 현재 로그인한 유저가 선택한 날짜
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth(); // 0-based
+        let currentUserName = "";
+        let isLoaded = false;        // 로그인/조회 완료 여부
 
-<script>
-    // ── 상태 변수 ──────────────────────────────────────────────
-    let usersByDate = {};        // { "2026-4-10": ["홍길동", ...] }
-    let mySelectedDates = new Set(); // 현재 로그인한 유저가 선택한 날짜
-    let currentYear  = new Date().getFullYear();
-    let currentMonth = new Date().getMonth(); // 0-based
-    let currentUserName = "";
-    let isLoaded = false;        // 로그인/조회 완료 여부
+        // ── 캘린더 렌더링 ──────────────────────────────────────────
+        function renderCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            const monthDisplay = document.getElementById('monthDisplay');
+            calendarEl.innerHTML = '';
+            monthDisplay.innerText = `${currentYear}. ${String(currentMonth + 1).padStart(2, '0')}`;
 
-    // ── 캘린더 렌더링 ──────────────────────────────────────────
-    function renderCalendar() {
-        const calendarEl  = document.getElementById('calendar');
-        const monthDisplay = document.getElementById('monthDisplay');
-        calendarEl.innerHTML = '';
-        monthDisplay.innerText = `${currentYear}. ${String(currentMonth + 1).padStart(2, '0')}`;
-
-        ['일','월','화','수','목','금','토'].forEach((day, i) => {
-            const cls = i === 0 ? 'sun' : i === 6 ? 'sat' : '';
-            calendarEl.innerHTML += `<div class="day-header ${cls}">${day}</div>`;
-        });
-
-        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-        const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-        for (let i = 0; i < firstDay; i++) {
-            calendarEl.innerHTML += `<div></div>`;
-        }
-
-        for (let d = 1; d <= lastDate; d++) {
-            const dateStr = `${currentYear}-${currentMonth + 1}-${d}`;
-            const users   = usersByDate[dateStr] || [];
-            const isActive = mySelectedDates.has(dateStr);
-
-            const dayEl = document.createElement('div');
-            dayEl.className = `day${isActive ? ' active' : ''}`;
-            dayEl.innerHTML = `<span>${d}</span><span class="count">${users.length}명</span>`;
-            dayEl.onclick      = () => toggleDate(dateStr, dayEl);
-            dayEl.onmouseenter = () => updateSidePanel(dateStr);
-            dayEl.onmouseleave = () => clearSidePanel();
-            calendarEl.appendChild(dayEl);
-        }
-    }
-
-    // ── 날짜 토글 ──────────────────────────────────────────────
-    function toggleDate(dateStr, el) {
-        if (!isLoaded) {
-            alert("이름을 입력하고 '로그인/조회' 버튼을 먼저 눌러주세요!");
-            return;
-        }
-
-        if (!usersByDate[dateStr]) usersByDate[dateStr] = [];
-
-        if (mySelectedDates.has(dateStr)) {
-            mySelectedDates.delete(dateStr);
-            usersByDate[dateStr] = usersByDate[dateStr].filter(u => u !== currentUserName);
-            el.classList.remove('active');
-        } else {
-            mySelectedDates.add(dateStr);
-            if (!usersByDate[dateStr].includes(currentUserName)) {
-                usersByDate[dateStr].push(currentUserName);
-            }
-            el.classList.add('active');
-        }
-
-        el.querySelector('.count').innerText = `${usersByDate[dateStr].length}명`;
-        updateSidePanel(dateStr);
-    }
-
-    // ── 사이드 패널 ────────────────────────────────────────────
-    function updateSidePanel(dateStr) {
-        const [y, m, d] = dateStr.split('-');
-        document.getElementById('hoverDateDisplay').innerText = `${y}년 ${m}월 ${d}일`;
-
-        const userListEl = document.getElementById('userList');
-        const users = usersByDate[dateStr] || [];
-        userListEl.innerHTML = users.length === 0
-            ? '<li style="color:#aaa;">선택한 인원이 없습니다.</li>'
-            : users.map(u => `<li>👤 ${u}</li>`).join('');
-    }
-
-    function clearSidePanel() {
-        document.getElementById('hoverDateDisplay').innerText = '날짜에 마우스를 올려보세요';
-        document.getElementById('userList').innerHTML =
-            '<li style="color:#aaa;text-align:center;padding-top:20px;">목록이 이곳에 표시됩니다.</li>';
-    }
-
-    // ── 로그인 / 데이터 불러오기 ───────────────────────────────
-    async function loadUserData() {
-        const name = document.getElementById('userName').value.trim();
-        if (!name) return alert("이름을 먼저 입력해주세요.");
-
-        setStatus("불러오는 중...");
-        try {
-            const response = await fetch(`/api/get-schedule?name=${encodeURIComponent(name)}`);
-            if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
-            const data = await response.json();
-
-            // ✅ 핵심 수정: mySelectedDates 에 저장
-            mySelectedDates = new Set(data.userDates || []);
-            usersByDate     = data.usersByDate || {};
-            currentUserName = name;
-            isLoaded        = true;
-
-            renderCalendar();
-            setStatus(`✅ ${name}님 로그인 완료`);
-        } catch (e) {
-            console.error("불러오기 실패:", e);
-            setStatus("❌ 데이터를 불러오지 못했습니다.");
-            alert("데이터를 불러오는 중 오류가 발생했습니다.");
-        }
-    }
-
-    // ── 저장 ───────────────────────────────────────────────────
-    async function saveData() {
-        if (!isLoaded) {
-            return alert("'로그인/조회' 버튼을 먼저 눌러 기존 정보를 확인해주세요.");
-        }
-
-        const name = document.getElementById('userName').value.trim();
-        if (name !== currentUserName) {
-            return alert("로그인한 이름과 입력란의 이름이 다릅니다. 다시 로그인/조회해주세요.");
-        }
-
-        const payload = {
-            user:  name,
-            dates: Array.from(mySelectedDates) // ✅ 핵심 수정: mySelectedDates 사용
-        };
-
-        setStatus("저장 중...");
-        try {
-            const response = await fetch('/api/save-schedule', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload)
+            ['일', '월', '화', '수', '목', '금', '토'].forEach((day, i) => {
+                const cls = i === 0 ? 'sun' : i === 6 ? 'sat' : '';
+                calendarEl.innerHTML += `<div class="day-header ${cls}">${day}</div>`;
             });
 
-            if (response.ok) {
-                setStatus("✅ 저장 완료!");
-                await loadUserData(); // 저장 후 최신 상태 다시 불러오기
-            } else {
-                setStatus("❌ 저장에 실패했습니다.");
-                alert("저장에 실패했습니다.");
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                calendarEl.innerHTML += `<div></div>`;
             }
-        } catch (e) {
-            console.error("저장 실패:", e);
-            setStatus("❌ 통신 오류가 발생했습니다.");
-            alert("저장 중 통신 에러가 발생했습니다.");
+
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${currentYear}-${currentMonth + 1}-${d}`;
+                const users = usersByDate[dateStr] || [];
+                const isActive = mySelectedDates.has(dateStr);
+
+                const dayEl = document.createElement('div');
+                dayEl.className = `day${isActive ? ' active' : ''}`;
+                dayEl.innerHTML = `<span>${d}</span><span class="count">${users.length}명</span>`;
+                dayEl.onclick = () => toggleDate(dateStr, dayEl);
+                dayEl.onmouseenter = () => updateSidePanel(dateStr);
+                dayEl.onmouseleave = () => clearSidePanel();
+                calendarEl.appendChild(dayEl);
+            }
         }
-    }
 
-    // ── 월 이동 ────────────────────────────────────────────────
-    function changeMonth(diff) {
-        currentMonth += diff;
-        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-        else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        // ── 날짜 토글 ──────────────────────────────────────────────
+        function toggleDate(dateStr, el) {
+            if (!isLoaded) {
+                alert("이름을 입력하고 '로그인/조회' 버튼을 먼저 눌러주세요!");
+                return;
+            }
+
+            if (!usersByDate[dateStr]) usersByDate[dateStr] = [];
+
+            if (mySelectedDates.has(dateStr)) {
+                mySelectedDates.delete(dateStr);
+                usersByDate[dateStr] = usersByDate[dateStr].filter(u => u !== currentUserName);
+                el.classList.remove('active');
+            } else {
+                mySelectedDates.add(dateStr);
+                if (!usersByDate[dateStr].includes(currentUserName)) {
+                    usersByDate[dateStr].push(currentUserName);
+                }
+                el.classList.add('active');
+            }
+
+            el.querySelector('.count').innerText = `${usersByDate[dateStr].length}명`;
+            updateSidePanel(dateStr);
+        }
+
+        // ── 사이드 패널 ────────────────────────────────────────────
+        function updateSidePanel(dateStr) {
+            const [y, m, d] = dateStr.split('-');
+            document.getElementById('hoverDateDisplay').innerText = `${y}년 ${m}월 ${d}일`;
+
+            const userListEl = document.getElementById('userList');
+            const users = usersByDate[dateStr] || [];
+            userListEl.innerHTML = users.length === 0
+                ? '<li style="color:#aaa;">선택한 인원이 없습니다.</li>'
+                : users.map(u => `<li>👤 ${u}</li>`).join('');
+        }
+
+        function clearSidePanel() {
+            document.getElementById('hoverDateDisplay').innerText = '날짜에 마우스를 올려보세요';
+            document.getElementById('userList').innerHTML =
+                '<li style="color:#aaa;text-align:center;padding-top:20px;">목록이 이곳에 표시됩니다.</li>';
+        }
+
+        // ── 로그인 / 데이터 불러오기 ───────────────────────────────
+        async function loadUserData() {
+            const name = document.getElementById('userName').value.trim();
+            if (!name) return alert("이름을 먼저 입력해주세요.");
+
+            setStatus("불러오는 중...");
+            try {
+                const response = await fetch(`/api/get-schedule?name=${encodeURIComponent(name)}`);
+                if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
+                const data = await response.json();
+
+                mySelectedDates = new Set(data.userDates || []);
+                usersByDate = data.usersByDate || {};
+                currentUserName = name;
+                isLoaded = true;
+
+                // ✅ 핵심 수정: 서버가 usersByDate를 안 줘도 내 선택일은 반드시 반영
+                mySelectedDates.forEach(dateStr => {
+                    if (!usersByDate[dateStr]) usersByDate[dateStr] = [];
+                    if (!usersByDate[dateStr].includes(currentUserName)) {
+                        usersByDate[dateStr].push(currentUserName);
+                    }
+                });
+
+                renderCalendar();
+                setStatus(`✅ ${name}님 로그인 완료`);
+            } catch (e) {
+                console.error("불러오기 실패:", e);
+                setStatus("❌ 데이터를 불러오지 못했습니다.");
+                alert("데이터를 불러오는 중 오류가 발생했습니다.");
+            }
+        }
+
+        // ── 저장 ───────────────────────────────────────────────────
+        async function saveData() {
+            if (!isLoaded) {
+                return alert("'로그인/조회' 버튼을 먼저 눌러 기존 정보를 확인해주세요.");
+            }
+
+            const name = document.getElementById('userName').value.trim();
+            if (name !== currentUserName) {
+                return alert("로그인한 이름과 입력란의 이름이 다릅니다. 다시 로그인/조회해주세요.");
+            }
+
+            const payload = {
+                user: name,
+                dates: Array.from(mySelectedDates) // ✅ 핵심 수정: mySelectedDates 사용
+            };
+
+            setStatus("저장 중...");
+            try {
+                const response = await fetch('/api/save-schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    setStatus("✅ 저장 완료!");
+                    await loadUserData(); // 저장 후 최신 상태 다시 불러오기
+                } else {
+                    setStatus("❌ 저장에 실패했습니다.");
+                    alert("저장에 실패했습니다.");
+                }
+            } catch (e) {
+                console.error("저장 실패:", e);
+                setStatus("❌ 통신 오류가 발생했습니다.");
+                alert("저장 중 통신 에러가 발생했습니다.");
+            }
+        }
+
+        // ── 월 이동 ────────────────────────────────────────────────
+        function changeMonth(diff) {
+            currentMonth += diff;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+
+        // ── 유틸 ───────────────────────────────────────────────────
+        function setStatus(msg) {
+            document.getElementById('statusMsg').innerText = msg;
+        }
+
+        // 초기 렌더링
         renderCalendar();
-    }
-
-    // ── 유틸 ───────────────────────────────────────────────────
-    function setStatus(msg) {
-        document.getElementById('statusMsg').innerText = msg;
-    }
-
-    // 초기 렌더링
-    renderCalendar();
-</script>
+    </script>
 
 </body>
+
 </html>
