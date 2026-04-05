@@ -5,6 +5,24 @@
     <meta charset="UTF-8">
     <title>모임 일정 조율</title>
     <style>
+        /* 툴팁 기본 스타일 */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            /* 툴팁이 마우스 이벤트를 방해하지 않도록 설정 */
+            display: none;
+            /* 기본적으로 숨김 */
+            white-space: pre-wrap;
+            /* 줄바꿈 허용 */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
         /* 전체 컨테이너 크기 조정 */
         .container {
             background: white;
@@ -158,6 +176,8 @@
 
 <body>
 
+    <div id="tooltip" class="tooltip"></div>
+
     <div class="container">
         <div class="login-section">
             <div style="display: flex; gap: 5px;">
@@ -208,6 +228,7 @@
             }
 
             // 3. 날짜 생성
+            // renderCalendar 함수 내 날짜 생성 부분
             for (let d = 1; d <= lastDate; d++) {
                 const dateStr = `${currentYear}-${currentMonth + 1}-${d}`;
                 const count = currentData[dateStr] || 0;
@@ -216,7 +237,14 @@
                 const dayEl = document.createElement('div');
                 dayEl.className = `day ${isActive}`;
                 dayEl.innerHTML = `<span>${d}</span><span class="count">${count}명</span>`;
+
+                // 1. 클릭 이벤트 (내 선택 변경)
                 dayEl.onclick = () => toggleDate(dateStr, dayEl);
+
+                // 2. 마우스 호버 이벤트 (툴팁 표시)
+                dayEl.onmouseenter = (e) => showTooltip(e, dateStr);
+                dayEl.onmouseleave = hideTooltip;
+
                 calendarEl.appendChild(dayEl);
             }
         }
@@ -320,6 +348,33 @@
         }
 
         renderCalendar();
+
+        const tooltip = document.getElementById('tooltip');
+
+            function showTooltip(e, dateStr) {
+                const users = dateDetails[dateStr] || [];
+                if (users.length === 0) return; // 선택한 사람이 없으면 안 보임
+
+                // 툴팁 내용 작성
+                tooltip.innerText = `👥 참여 가능:\n${users.join(', ')}`;
+                tooltip.style.display = 'block';
+
+                // 마우스 위치에 맞게 툴팁 배치 (약간 오른쪽 위로)
+                tooltip.style.left = e.pageX + 10 + 'px';
+                tooltip.style.top = e.pageY - 30 + 'px';
+            }
+
+            function hideTooltip() {
+                tooltip.style.display = 'none';
+            }
+
+            // 마우스가 움직일 때 툴팁이 따라다니게 하고 싶다면 추가 (선택사항)
+            document.addEventListener('mousemove', (e) => {
+                if (tooltip.style.display === 'block') {
+                    tooltip.style.left = e.pageX + 10 + 'px';
+                    tooltip.style.top = e.pageY - 30 + 'px';
+                }
+            });
     </script>
 
 </body>
