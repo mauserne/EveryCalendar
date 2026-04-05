@@ -2,9 +2,10 @@
 <html lang="ko">
 
 <head>
+       
     <meta charset="UTF-8">
-    <title>모임 일정 조율</title>
-    <style>
+        <title>모임 일정 조율</title>
+        <style>
         /* 화면 중앙 배치를 위한 전체 배경 래퍼 */
         body {
             background-color: #f8f9fa;
@@ -208,40 +209,44 @@
 
 <body>
 
-    <div class="wrapper">
-        <div class="container">
-            <div class="login-section">
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="userName" placeholder="이름을 입력하세요">
-                    <button class="btn-load" onclick="loadUserData()">불러오기</button>
-                </div>
-            </div>
+        <div class="wrapper">
+                <div class="container">
+                        <div class="login-section">
+                                <div style="display: flex; gap: 5px;">
+                                        <input type="text" id="userName" placeholder="이름을 입력하세요">
+                                        <button class="btn-load" onclick="loadUserData()">불러오기</button>
+                                    </div>
+                            </div>
 
-            <div class="calendar-header">
-                <button onclick="changeMonth(-1)">&lt;</button>
-                <h3 id="monthDisplay"></h3>
-                <button onclick="changeMonth(1)">&gt;</button>
-            </div>
+                        <div class="calendar-header">
+                                <button onclick="changeMonth(-1)">&lt;</button>
+                                <h3 id="monthDisplay"></h3>
+                                <button onclick="changeMonth(1)">&gt;</button>
+                            </div>
 
-            <div id="calendar" class="calendar-grid"></div>
+                        <div id="calendar" class="calendar-grid"></div>
 
-            <button class="btn-save" onclick="saveData()">저장하기</button>
-        </div>
+                        <button class="btn-save" onclick="saveData()">저장하기</button>
+                    </div>
 
-        <div class="side-container">
-            <h3>선택 인원 확인</h3>
-            <div id="hoverDateDisplay" class="hover-date">날짜에 마우스를 올려보세요</div>
-            <ul id="userList" class="user-list">
-                <li style="color: #aaa; text-align: center; padding-top: 20px;">
-                    목록이 이곳에 표시됩니다.
-                </li>
-            </ul>
-        </div>
-    </div>
+                <div class="side-container">
+                        <h3>선택 인원 확인</h3>
+                        <div id="hoverDateDisplay" class="hover-date">날짜에 마우스를 올려보세요</div>
+                        <ul id="userList" class="user-list">
+                                <li style="color: #aaa; text-align: center; padding-top: 20px;">
+                                        목록이 이곳에 표시됩니다.
+                                    </li>
+                            </ul>
+                    </div>
+            </div>
 
+       
     <script>
-        // 기존 인원수 데이터 대신, 선택한 사람들의 '이름 배열'을 저장하는 객체로 예시를 작성했습니다.
+        // 1. 화면에서 바로 확인할 수 있도록 임시(Mock) 데이터를 채워두었습니다.
         let usersByDate = {
+            "2026-4-10": ["김철수", "이영희"],
+            "2026-4-15": ["홍길동"],
+            "2026-4-20": ["김철수", "박지민", "최동훈"]
         };
 
         let selectedDates = new Set();
@@ -269,10 +274,7 @@
             }
 
             for (let d = 1; d <= lastDate; d++) {
-                // 날짜 포맷 (예: 2026-4-5) - 앞의 mock 데이터 키 형식과 일치시킵니다.
                 const dateStr = `${currentYear}-${currentMonth + 1}-${d}`;
-
-                // 해당 날짜를 선택한 사람들의 배열을 가져오고, 없으면 빈 배열
                 const users = usersByDate[dateStr] || [];
                 const count = users.length;
                 const isActive = selectedDates.has(dateStr) ? 'active' : '';
@@ -281,29 +283,24 @@
                 dayEl.className = `day ${isActive}`;
                 dayEl.innerHTML = `<span>${d}</span><span class="count">${count}명</span>`;
 
-                // 1. 클릭 이벤트 (선택/해제)
                 dayEl.onclick = () => toggleDate(dateStr, dayEl);
-
-                // 2. 마우스 호버 이벤트 (사이드 패널 업데이트)
-                dayEl.onmouseenter = () => showHoverInfo(dateStr, users);
+                dayEl.onmouseenter = () => showHoverInfo(dateStr, usersByDate[dateStr] || []);
                 dayEl.onmouseleave = () => clearHoverInfo();
 
                 calendarEl.appendChild(dayEl);
             }
         }
 
-        // 호버 시 사이드 패널에 정보 표시
         function showHoverInfo(dateStr, users) {
             const dateDisplay = document.getElementById('hoverDateDisplay');
             const userList = document.getElementById('userList');
 
-            // 날짜 표시 (예: 2026년 4월 5일)
             const [y, m, d] = dateStr.split('-');
             dateDisplay.innerText = `${y}년 ${m}월 ${d}일`;
 
-            userList.innerHTML = ''; // 리스트 초기화
+            userList.innerHTML = '';
 
-            if (users.length === 0) {
+            if (!users || users.length === 0) {
                 userList.innerHTML = '<li style="color: #aaa;">선택한 인원이 없습니다.</li>';
             } else {
                 users.forEach(user => {
@@ -312,7 +309,6 @@
             }
         }
 
-        // 호버 해제 시 사이드 패널 초기화 (원하지 않으면 이 함수를 비워두셔도 됩니다)
         function clearHoverInfo() {
             const dateDisplay = document.getElementById('hoverDateDisplay');
             const userList = document.getElementById('userList');
@@ -322,13 +318,38 @@
         }
 
         function toggleDate(dateStr, el) {
+            // 2. 현재 입력된 이름을 가져옵니다. (입력 안 했으면 '나(미입력)'으로 처리)
+            let userName = document.getElementById('userName').value.trim();
+            if (!userName) userName = "나(미입력)";
+
+            if (!usersByDate[dateStr]) {
+                usersByDate[dateStr] = [];
+            }
+
             if (selectedDates.has(dateStr)) {
+                // 선택 해제 처리
                 selectedDates.delete(dateStr);
                 el.classList.remove('active');
+
+                // 데이터 배열에서 내 이름 빼기
+                usersByDate[dateStr] = usersByDate[dateStr].filter(name => name !== userName);
             } else {
+                // 선택 추가 처리
                 selectedDates.add(dateStr);
                 el.classList.add('active');
+
+                // 데이터 배열에 내 이름 넣기 (중복 방지)
+                if (!usersByDate[dateStr].includes(userName)) {
+                    usersByDate[dateStr].push(userName);
+                }
             }
+
+            // 3. UI 인원수 텍스트 즉시 업데이트
+            const countSpan = el.querySelector('.count');
+            countSpan.innerText = `${usersByDate[dateStr].length}명`;
+
+            // 4. 클릭한 순간 사이드 패널의 리스트도 즉시 새로고침
+            showHoverInfo(dateStr, usersByDate[dateStr]);
         }
 
         let isLoaded = false;
@@ -345,36 +366,24 @@
             if (!name) return alert("이름을 먼저 입력해주세요.");
 
             try {
-                // --- [테스트용 가짜 데이터 시작] ---
-                // 실제 서버가 없을 때 화면 확인을 위해 강제로 데이터를 넣습니다.
-                const mockData = {
-                    userDates: ["2026-4-10", "2026-4-15"], // 이 사용자가 선택했던 날짜
-                    usersByDate: {
-                        "2026-4-5": ["홍길동", "김철수", "이영희"],
-                        "2026-4-10": ["박지성", name], 
-                        "2026-4-15": ["손흥민", name],
-                        "2026-4-20": ["김연아"]
-                    }
-                };
-                
-                // 실제 fetch 코드는 잠시 주석 처리하거나, 에러 발생 시 mockData를 쓰도록 합니다.
-                // const response = await fetch(`/api/get-schedule?name=${name}`);
-                // const data = await response.json(); 
-                const data = mockData; 
-                // --- [테스트용 가짜 데이터 끝] ---
+                const response = await fetch(`/api/get-schedule?name=${name}`);
+                if (!response.ok) throw new Error("서버 응답 에러");
+                const data = await response.json();
 
                 selectedDates = new Set(data.userDates || []);
-                usersByDate = data.usersByDate || {}; 
+                usersByDate = data.usersByDate || {};
 
                 currentUserName = name;
                 isLoaded = true;
 
-                renderCalendar(); // 데이터를 받았으니 달력을 다시 그립니다.
-                alert(`${name}님의 데이터를 불러왔습니다. (테스트 모드)`);
-                
+                renderCalendar();
+                alert(`${name}님의 기존 일정을 불러왔습니다.`);
             } catch (e) {
-                console.error("불러오기 실패:", e);
-                alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                console.warn("서버가 없어 로컬 테스트 모드로 전환합니다.");
+                // 5. 서버(백엔드)가 없는 로컬 환경에서도 동작 테스트를 할 수 있도록 예외 처리 추가
+                currentUserName = name;
+                isLoaded = true;
+                alert(`${name}님 이름으로 임시 불러오기(로컬 모드)를 완료했습니다.`);
             }
         }
 
@@ -392,7 +401,6 @@
             };
 
             try {
-                console.log("서버로 전송:", payload);
                 const response = await fetch('/api/save-schedule', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -400,14 +408,15 @@
                 });
 
                 if (response.ok) {
-                    alert("성공적으로 저장되었습니다! (콘솔을 확인하세요)");
+                    alert("성공적으로 저장되었습니다!");
                     await loadUserData();
                 } else {
-                    alert("저장에 실패했습니다.");
+                    throw new Error("저장 실패");
                 }
             } catch (e) {
                 console.error("저장 실패:", e);
-                alert("저장 중 통신 에러가 발생했습니다.");
+                alert("저장 로직이 호출되었습니다. (서버 연결 안 됨, 콘솔의 payload 확인)");
+                console.log("저장하려던 데이터:", payload);
             }
         }
 
