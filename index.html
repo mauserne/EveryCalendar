@@ -247,31 +247,31 @@
             if (!name) return alert("이름을 먼저 입력해주세요.");
 
             try {
-                // [백엔드가 만들어졌을 때의 실제 호출]
-                // const response = await fetch(`/api/get-schedule?name=${name}`);
-                // const data = await response.json(); 
+                // 실제 백엔드 API 호출 (주석 해제 및 수정)
+                const response = await fetch(`/api/get-schedule?name=${name}`);
 
-                // 백엔드에서 아래 두 가지를 모두 넘겨주도록 설계해야 합니다.
-                // data.userDates = ['2026-04-10', '2026-04-15'] (이 유저가 선택한 날짜들)
-                // data.totalCounts = { '2026-04-10': 3, '2026-04-15': 1 } (전체 유저들의 선택 통계)
+                // 만약 에러가 발생하면 멈춤
+                if (!response.ok) {
+                    throw new Error("서버 응답 에러");
+                }
 
-                // 가상 데이터 (테스트용)
-                const mockUserDates = [];
-                const mockTotalCounts = { "2026-04-05": 3, "2026-04-12": 1 }; // 예시
+                const data = await response.json();
 
-                selectedDates = new Set(mockUserDates);
-                currentData = mockTotalCounts; // 총인원수 데이터 업데이트
+                // 서버에서 받아온 실제 데이터 적용
+                selectedDates = new Set(data.userDates || []);
+                currentData = data.totalCounts || {}; // 총인원수 데이터 업데이트
 
                 currentUserName = name;
                 isLoaded = true;
 
                 renderCalendar(); // 업데이트된 데이터로 달력 다시 그리기
+                console.log("불러온 데이터:", data); // 확인용 로그
                 alert(`${name}님의 기존 일정을 불러왔습니다.`);
             } catch (e) {
-                // ... 에러 처리
+                console.error("불러오기 실패:", e);
+                alert("데이터를 불러오는 중 오류가 발생했습니다.");
             }
         }
-
         // 2. 서버로 데이터 저장하기
         async function saveData() {
             const name = document.getElementById('userName').value.trim();
@@ -291,17 +291,24 @@
 
             try {
                 console.log("서버로 전송:", payload);
-                /*
+
+                // 실제 백엔드 API 호출 (주석 해제)
                 const response = await fetch('/api/save-schedule', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if(response.ok) alert("성공적으로 저장되었습니다!");
-                */
-                alert("저장이 완료되었습니다.");
+
+                if (response.ok) {
+                    alert("성공적으로 저장되었습니다!");
+                    // 저장 후 전체 인원수 갱신을 위해 다시 불러오기
+                    await loadUserData();
+                } else {
+                    alert("저장에 실패했습니다.");
+                }
             } catch (e) {
-                alert("저장 실패!");
+                console.error("저장 실패:", e);
+                alert("저장 중 통신 에러가 발생했습니다.");
             }
         }
 
