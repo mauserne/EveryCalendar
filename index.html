@@ -345,18 +345,15 @@
             if (!name) return alert("이름을 먼저 입력해주세요.");
 
             try {
-                const response = await fetch(`/api/get-schedule?name=${name}`);
-                if (!response.ok) throw new Error("서버 응답 에러");
-                const data = await response.json();
-
                 selectedDates = new Set(data.userDates || []);
-                usersByDate = data.usersByDate || {}; // 데이터 업데이트
+                usersByDate = data.usersByDate || {};
 
                 currentUserName = name;
                 isLoaded = true;
 
-                renderCalendar();
-                alert(`${name}님의 기존 일정을 불러왔습니다.`);
+                renderCalendar(); // 데이터를 받았으니 달력을 다시 그립니다.
+                alert(`${name}님의 데이터를 불러왔습니다. (테스트 모드)`);
+
             } catch (e) {
                 console.error("불러오기 실패:", e);
                 alert("데이터를 불러오는 중 오류가 발생했습니다.");
