@@ -247,25 +247,28 @@
             if (!name) return alert("이름을 먼저 입력해주세요.");
 
             try {
-                // 실제 서버 API 호출 예시 (GET 방식)
+                // [백엔드가 만들어졌을 때의 실제 호출]
                 // const response = await fetch(`/api/get-schedule?name=${name}`);
                 // const data = await response.json(); 
 
-                // --- [테스트용 가상 로직 시작] ---
-                // 서버에서 받아온 데이터가 ['2026-04-10', '2026-04-15'] 라고 가정
-                const mockDataFromServer = []; // 실제로는 fetch 결과가 들어감
+                // 백엔드에서 아래 두 가지를 모두 넘겨주도록 설계해야 합니다.
+                // data.userDates = ['2026-04-10', '2026-04-15'] (이 유저가 선택한 날짜들)
+                // data.totalCounts = { '2026-04-10': 3, '2026-04-15': 1 } (전체 유저들의 선택 통계)
 
-                selectedDates = new Set(mockDataFromServer);
+                // 가상 데이터 (테스트용)
+                const mockUserDates = [];
+                const mockTotalCounts = { "2026-04-05": 3, "2026-04-12": 1 }; // 예시
+
+                selectedDates = new Set(mockUserDates);
+                currentData = mockTotalCounts; // 총인원수 데이터 업데이트
+
                 currentUserName = name;
-                isLoaded = true; // 불러오기 성공 표시
+                isLoaded = true;
 
-                renderCalendar();
-                alert(`${name}님의 기존 일정을 불러왔습니다. 이제 수정 후 저장할 수 있습니다.`);
-                // --- [테스트용 가상 로직 끝] ---
-
+                renderCalendar(); // 업데이트된 데이터로 달력 다시 그리기
+                alert(`${name}님의 기존 일정을 불러왔습니다.`);
             } catch (e) {
-                console.error("불러오기 실패:", e);
-                alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                // ... 에러 처리
             }
         }
 
