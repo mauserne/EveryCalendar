@@ -10,8 +10,11 @@ export default async function handler(req, res) {
 
   const { user, dates } = req.body;
 
-  // upsert: 이름이 같으면 업데이트, 없으면 새로 저장
-  const { data, error } = await supabase
+  if (!user || !Array.isArray(dates)) {
+    return res.status(400).json({ error: 'user와 dates가 필요합니다.' });
+  }
+
+  const { error } = await supabase
     .from('schedules')
     .upsert({ user_name: user, selected_dates: dates }, { onConflict: 'user_name' });
 
