@@ -5,48 +5,84 @@
     <meta charset="UTF-8">
     <title>모임 일정 조율</title>
     <style>
-        /* 툴팁 기본 스타일 */
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 1000;
-            pointer-events: none;
-            /* 툴팁이 마우스 이벤트를 방해하지 않도록 설정 */
-            display: none;
-            /* 기본적으로 숨김 */
-            white-space: pre-wrap;
-            /* 줄바꿈 허용 */
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        /* 화면 중앙 배치를 위한 전체 배경 래퍼 */
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
         }
 
-        /* 전체 컨테이너 크기 조정 */
+        /* 캘린더와 사이드 패널을 양옆으로 배치하는 래퍼 */
+        .wrapper {
+            display: flex;
+            gap: 20px;
+            /* 두 컨테이너 사이의 간격 */
+            align-items: flex-start;
+        }
+
+        /* 기존 캘린더 컨테이너 */
         .container {
             background: white;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             width: 400px;
-            /* 달력 폭에 맞춰 조금 넓혔습니다 */
         }
 
+        /* 새로 추가된 사이드 컨테이너 (참석자 목록) */
+        .side-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            min-height: 380px;
+            /* 캘린더와 비슷한 높이 유지 */
+        }
+
+        .side-container h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            color: #333;
+        }
+
+        .hover-date {
+            font-weight: bold;
+            color: #4a90e2;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            min-height: 20px;
+            /* 빈 공간 유지 */
+        }
+
+        .user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .user-list li {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* 기존 캘린더 내부 CSS 유지 */
         .calendar-header {
             display: flex;
             justify-content: space-between;
-            /* 양 끝과 중앙으로 간격 분산 */
             align-items: center;
-            /* 세로 중앙 정렬 */
             margin-bottom: 20px;
             width: 100%;
-            /* 컨테이너 너비에 맞춤 */
         }
 
         .calendar-header h3 {
             margin: 0;
-            /* 제목의 기본 상하 여백 제거 */
             font-size: 1.2rem;
             letter-spacing: 1px;
         }
@@ -64,38 +100,30 @@
             background: #f0f0f0;
         }
 
-        /* 7열 격자 핵심 설정 */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            /* 7개의 열을 동일한 비율로 설정 */
             gap: 8px;
             text-align: center;
         }
 
-        /* 요일 헤더 기본 스타일 */
         .day-header {
             font-weight: bold;
             font-size: 14px;
             padding-bottom: 10px;
             color: #555;
-            /* 평일: 진한 회색 */
         }
 
-        /* 일요일: 빨간색 */
         .sun {
             color: #ff4d4d !important;
         }
 
-        /* 토요일: 파란색 */
         .sat {
             color: #4a90e2 !important;
         }
 
-        /* 개별 날짜 칸 */
         .day {
             aspect-ratio: 1 / 1.1;
-            /* 약간 세로로 긴 사각형 */
             border: 1px solid #f0f0f0;
             display: flex;
             flex-direction: column;
@@ -106,13 +134,16 @@
             transition: 0.2s;
         }
 
-        /* 날짜 클릭 시 효과 */
+        .day:hover {
+            border-color: #4a90e2;
+            /* 호버 시 테두리만 살짝 강조 */
+        }
+
         .day.active {
             background-color: #4a90e2;
             color: white;
             border-color: #4a90e2;
             transform: scale(1.05);
-            /* 선택 시 살짝 커지는 효과 */
         }
 
         .count {
@@ -137,20 +168,23 @@
 
         #userName {
             flex: 1;
-            /* 입력창이 가능한 넓게 */
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
 
-        .btn-load {
+        .btn-load,
+        .btn-save {
             padding: 0 15px;
-            background-color: #6c757d;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             white-space: nowrap;
+        }
+
+        .btn-load {
+            background-color: #6c757d;
         }
 
         .btn-load:hover {
@@ -159,13 +193,11 @@
 
         .btn-save {
             margin: 20px 0;
-            padding: 5px 20px;
+            padding: 8px 20px;
             background-color: rgb(54, 161, 255);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            white-space: nowrap;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
         }
 
         .btn-save:hover {
@@ -176,43 +208,53 @@
 
 <body>
 
-    <div id="tooltip" class="tooltip"></div>
-
-    <div class="container">
-        <div class="login-section">
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="userName" placeholder="이름을 입력하세요">
-                <button class="btn-load" onclick="loadUserData()">불러오기</button>
+    <div class="wrapper">
+        <div class="container">
+            <div class="login-section">
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="userName" placeholder="이름을 입력하세요">
+                    <button class="btn-load" onclick="loadUserData()">불러오기</button>
+                </div>
             </div>
+
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">&lt;</button>
+                <h3 id="monthDisplay"></h3>
+                <button onclick="changeMonth(1)">&gt;</button>
+            </div>
+
+            <div id="calendar" class="calendar-grid"></div>
+
+            <button class="btn-save" onclick="saveData()">저장하기</button>
         </div>
 
-        <div class="calendar-header">
-            <button onclick="changeMonth(-1)">&lt;</button>
-            <h3 id="monthDisplay"></h3> <!-- 년.월 표시용 헤드 -->
-            <button onclick="changeMonth(1)">&gt;</button>
+        <div class="side-container">
+            <h3>선택 인원 확인</h3>
+            <div id="hoverDateDisplay" class="hover-date">날짜에 마우스를 올려보세요</div>
+            <ul id="userList" class="user-list">
+                <li style="color: #aaa; text-align: center; padding-top: 20px;">
+                    목록이 이곳에 표시됩니다.
+                </li>
+            </ul>
         </div>
-
-        <div id="calendar" class="calendar-grid">
-        </div>
-
-        <button class="btn-save" onclick="saveData()">저장하기</button>
     </div>
 
     <script>
-        let currentData = { /* 날짜별 인원수 데이터 예시: "2026-04-05": 3 */ };
+        // 기존 인원수 데이터 대신, 선택한 사람들의 '이름 배열'을 저장하는 객체로 예시를 작성했습니다.
+        let usersByDate = {
+        };
+
         let selectedDates = new Set();
         let currentYear = 2026;
-        let currentMonth = 4; // 0부터 시작 (4월)
+        let currentMonth = 3; // 0부터 시작이므로 3은 4월을 의미
 
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
-            const monthDisplay = document.getElementById('monthDisplay'); // 표시 엘리먼트 가져오기
+            const monthDisplay = document.getElementById('monthDisplay');
             calendarEl.innerHTML = '';
 
-            // 현재 연도와 월(0~11이므로 +1)을 화면에 반영
             monthDisplay.innerText = `${currentYear}. ${String(currentMonth + 1).padStart(2, '0')}`;
 
-            // --- 이후 요일 헤더 및 날짜 생성 로직 ---
             const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
             weekDays.forEach((day, index) => {
                 let colorClass = index === 0 ? 'sun' : (index === 6 ? 'sat' : '');
@@ -222,31 +264,61 @@
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-            // 2. 시작 요일 전까지 빈 칸 생성
             for (let i = 0; i < firstDay; i++) {
                 calendarEl.innerHTML += `<div></div>`;
             }
 
-            // 3. 날짜 생성
-            // renderCalendar 함수 내 날짜 생성 부분
             for (let d = 1; d <= lastDate; d++) {
+                // 날짜 포맷 (예: 2026-4-5) - 앞의 mock 데이터 키 형식과 일치시킵니다.
                 const dateStr = `${currentYear}-${currentMonth + 1}-${d}`;
-                const count = currentData[dateStr] || 0;
+
+                // 해당 날짜를 선택한 사람들의 배열을 가져오고, 없으면 빈 배열
+                const users = usersByDate[dateStr] || [];
+                const count = users.length;
                 const isActive = selectedDates.has(dateStr) ? 'active' : '';
 
                 const dayEl = document.createElement('div');
                 dayEl.className = `day ${isActive}`;
                 dayEl.innerHTML = `<span>${d}</span><span class="count">${count}명</span>`;
 
-                // 1. 클릭 이벤트 (내 선택 변경)
+                // 1. 클릭 이벤트 (선택/해제)
                 dayEl.onclick = () => toggleDate(dateStr, dayEl);
 
-                // 2. 마우스 호버 이벤트 (툴팁 표시)
-                dayEl.onmouseenter = (e) => showTooltip(e, dateStr);
-                dayEl.onmouseleave = hideTooltip;
+                // 2. 마우스 호버 이벤트 (사이드 패널 업데이트)
+                dayEl.onmouseenter = () => showHoverInfo(dateStr, users);
+                dayEl.onmouseleave = () => clearHoverInfo();
 
                 calendarEl.appendChild(dayEl);
             }
+        }
+
+        // 호버 시 사이드 패널에 정보 표시
+        function showHoverInfo(dateStr, users) {
+            const dateDisplay = document.getElementById('hoverDateDisplay');
+            const userList = document.getElementById('userList');
+
+            // 날짜 표시 (예: 2026년 4월 5일)
+            const [y, m, d] = dateStr.split('-');
+            dateDisplay.innerText = `${y}년 ${m}월 ${d}일`;
+
+            userList.innerHTML = ''; // 리스트 초기화
+
+            if (users.length === 0) {
+                userList.innerHTML = '<li style="color: #aaa;">선택한 인원이 없습니다.</li>';
+            } else {
+                users.forEach(user => {
+                    userList.innerHTML += `<li>👨‍💻 ${user}</li>`;
+                });
+            }
+        }
+
+        // 호버 해제 시 사이드 패널 초기화 (원하지 않으면 이 함수를 비워두셔도 됩니다)
+        function clearHoverInfo() {
+            const dateDisplay = document.getElementById('hoverDateDisplay');
+            const userList = document.getElementById('userList');
+
+            dateDisplay.innerText = '날짜에 마우스를 올려보세요';
+            userList.innerHTML = '<li style="color: #aaa; text-align: center; padding-top: 20px;">목록이 이곳에 표시됩니다.</li>';
         }
 
         function toggleDate(dateStr, el) {
@@ -259,57 +331,44 @@
             }
         }
 
-        let isLoaded = false; // 불러오기 완료 여부 플래그
-        let currentUserName = ""; // 현재 불러온 사용자 이름 저장
+        let isLoaded = false;
+        let currentUserName = "";
 
-        // 이름 입력창에 변화가 생기면 다시 불러오기를 해야 함
         document.getElementById('userName').addEventListener('input', function () {
             isLoaded = false;
-            selectedDates.clear(); // 선택 초기화 (선택사항)
+            selectedDates.clear();
             renderCalendar();
         });
 
-        // 1. 서버에서 데이터 불러오기
         async function loadUserData() {
             const name = document.getElementById('userName').value.trim();
             if (!name) return alert("이름을 먼저 입력해주세요.");
 
             try {
-                // 실제 백엔드 API 호출 (주석 해제 및 수정)
                 const response = await fetch(`/api/get-schedule?name=${name}`);
-
-                // 만약 에러가 발생하면 멈춤
-                if (!response.ok) {
-                    throw new Error("서버 응답 에러");
-                }
-
+                if (!response.ok) throw new Error("서버 응답 에러");
                 const data = await response.json();
 
-                // 서버에서 받아온 실제 데이터 적용
                 selectedDates = new Set(data.userDates || []);
-                currentData = data.totalCounts || {}; // 총인원수 데이터 업데이트
+                usersByDate = data.usersByDate || {}; // 데이터 업데이트
 
                 currentUserName = name;
                 isLoaded = true;
 
-                renderCalendar(); // 업데이트된 데이터로 달력 다시 그리기
-                console.log("불러온 데이터:", data); // 확인용 로그
+                renderCalendar();
                 alert(`${name}님의 기존 일정을 불러왔습니다.`);
             } catch (e) {
                 console.error("불러오기 실패:", e);
                 alert("데이터를 불러오는 중 오류가 발생했습니다.");
             }
         }
-        // 2. 서버로 데이터 저장하기
+
         async function saveData() {
             const name = document.getElementById('userName').value.trim();
 
-            // [체크 1] 불러오기를 먼저 했는지 확인
             if (!isLoaded || name !== currentUserName) {
                 return alert("'불러오기' 버튼을 먼저 눌러 기존 정보를 확인해주세요.");
             }
-
-            // [체크 2] 이름 입력 확인
             if (!name) return alert("이름을 입력해주세요.");
 
             const payload = {
@@ -319,8 +378,6 @@
 
             try {
                 console.log("서버로 전송:", payload);
-
-                // 실제 백엔드 API 호출 (주석 해제)
                 const response = await fetch('/api/save-schedule', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -328,8 +385,7 @@
                 });
 
                 if (response.ok) {
-                    alert("성공적으로 저장되었습니다!");
-                    // 저장 후 전체 인원수 갱신을 위해 다시 불러오기
+                    alert("성공적으로 저장되었습니다! (콘솔을 확인하세요)");
                     await loadUserData();
                 } else {
                     alert("저장에 실패했습니다.");
@@ -348,35 +404,7 @@
         }
 
         renderCalendar();
-
-        const tooltip = document.getElementById('tooltip');
-
-            function showTooltip(e, dateStr) {
-                const users = dateDetails[dateStr] || [];
-                if (users.length === 0) return; // 선택한 사람이 없으면 안 보임
-
-                // 툴팁 내용 작성
-                tooltip.innerText = `👥 참여 가능:\n${users.join(', ')}`;
-                tooltip.style.display = 'block';
-
-                // 마우스 위치에 맞게 툴팁 배치 (약간 오른쪽 위로)
-                tooltip.style.left = e.pageX + 10 + 'px';
-                tooltip.style.top = e.pageY - 30 + 'px';
-            }
-
-            function hideTooltip() {
-                tooltip.style.display = 'none';
-            }
-
-            // 마우스가 움직일 때 툴팁이 따라다니게 하고 싶다면 추가 (선택사항)
-            document.addEventListener('mousemove', (e) => {
-                if (tooltip.style.display === 'block') {
-                    tooltip.style.left = e.pageX + 10 + 'px';
-                    tooltip.style.top = e.pageY - 30 + 'px';
-                }
-            });
     </script>
-
 </body>
 
 </html>
