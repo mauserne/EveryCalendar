@@ -758,7 +758,12 @@
 
                 <!-- Hover panel -->
                 <div class="card">
-                    <div class="card-label">날짜별 참여자</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <div class="card-label" style="margin-bottom:0;">날짜별 참여자</div>
+                        <div id="pinBadge"
+                            style="display:none;font-size:11px;font-weight:600;padding:3px 8px;border-radius:100px;background:rgba(108,99,255,0.15);color:var(--accent2);border:1px solid rgba(108,99,255,0.25);cursor:pointer;"
+                            onclick="unpinDate()">📌 고정됨 &times;</div>
+                    </div>
                     <div id="hoverDateTitle" class="hover-date-title">—</div>
                     <div id="hoverDateSub" class="hover-date-sub">날짜에 마우스를 올려보세요</div>
                     <ul id="userList" class="user-list">
@@ -800,6 +805,7 @@
         let currentMonth = new Date().getMonth();
         let currentUserName = "";
         let isLoaded = false;
+        let pinnedDate = null;
 
         const today = new Date();
 
@@ -858,9 +864,9 @@
       <span class="day-count">${users.length > 0 ? users.length + '명' : ''}</span>
       <div class="day-heat"></div>
     `;
-                dayEl.onclick = () => toggleDate(dateStr, dayEl);
-                dayEl.onmouseenter = () => updateSidePanel(dateStr);
-                dayEl.onmouseleave = () => clearSidePanel();
+                dayEl.onclick = () => { toggleDate(dateStr, dayEl); pinDate(dateStr); };
+                dayEl.onmouseenter = () => { if (!pinnedDate) updateSidePanel(dateStr); };
+                dayEl.onmouseleave = () => { if (!pinnedDate) clearSidePanel(); };
                 calEl.appendChild(dayEl);
             }
 
@@ -890,10 +896,22 @@
             }
 
             el.querySelector('.day-count').innerText = usersByDate[dateStr].length > 0 ? usersByDate[dateStr].length + '명' : '';
-            updateSidePanel(dateStr);
+            if (pinnedDate === dateStr) updateSidePanel(dateStr);
             updateStats();
             updateBestDates();
             updateMyDates();
+        }
+
+        function pinDate(dateStr) {
+            pinnedDate = dateStr;
+            document.getElementById('pinBadge').style.display = 'block';
+            updateSidePanel(dateStr);
+        }
+
+        function unpinDate() {
+            pinnedDate = null;
+            document.getElementById('pinBadge').style.display = 'none';
+            clearSidePanel();
         }
 
         function updateSidePanel(dateStr) {
